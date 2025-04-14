@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Garden Planner</title>
+  <title>Garden Planner Coach</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -49,9 +49,13 @@
       border: 1px solid #ddd;
       padding: 10px;
       display: flex;
+      flex-direction: column;
+      border-radius: 4px;
+    }
+    ul.task-list li > div {
+      display: flex;
       align-items: center;
       justify-content: space-between;
-      border-radius: 4px;
     }
     ul.task-list li span.task-text {
       flex-grow: 1;
@@ -64,13 +68,14 @@
     ul.task-list li span.reminder {
       font-size: 0.9em;
       color: #555;
-      margin-left: 10px;
+      margin-top: 5px;
     }
     ul.task-list li button {
       background: #e74c3c;
-      margin-left: 10px;
+      margin-top: 5px;
       padding: 5px 10px;
       font-size: 0.9em;
+      align-self: flex-end;
     }
     ul.task-list li button:hover {
       background: #c0392b;
@@ -78,9 +83,9 @@
   </style>
 </head>
 <body>
-  <h1>Garden Planner</h1>
+  <h1>Garden Planner Coach</h1>
   <form id="taskForm">
-    <input type="text" id="taskInput" placeholder="Enter task (e.g., 'Check tomato plant soil')" required>
+    <input type="text" id="taskInput" placeholder="Enter a custom task (optional)" >
     <input type="datetime-local" id="reminderInput" title="Set a reminder for this task (optional)">
     <button type="submit">Add Task</button>
   </form>
@@ -88,20 +93,80 @@
   <ul id="taskList" class="task-list"></ul>
   
   <script>
-    // Retrieve tasks from local storage or initialize an empty list.
-    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    // Pre-populated tasks for the garden program, starting April 14th.
+    // Each task includes a description and a reminder time.
+    const presetTasks = [
+      {
+        text: "Step 1: Clear the garden bed. Remove all weeds, old roots, stones, and debris.",
+        reminder: "2025-04-14T09:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 2: Loosen and aerate the soil to about 8-12 inches deep (use a spade, large spoon, or sturdy fork).",
+        reminder: "2025-04-14T10:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 3: Mix in homemade soil boosters. Dig small trenches to bury chopped fruit/veg scraps, coffee grounds, and crushed eggshells.",
+        reminder: "2025-04-14T11:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 4: Plant the cherry tomato. At one end of the bed, dig a hole, set your tomato seedling (bury the stem up to the first set of true leaves), and backfill. Provide support with a stake or cage.",
+        reminder: "2025-04-15T09:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 5: Plant the bush beans. In the middle of the bed, draw a shallow furrow and sow bean seeds 1 inch deep, spaced about 15 cm apart.",
+        reminder: "2025-04-15T14:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 6: Plant the broccoli. At the opposite end of the bed from the tomato, dig a hole and set your broccoli seedling (or sow seeds lightly).",
+        reminder: "2025-04-16T09:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 7: Water thoroughly. Give your garden a deep watering to settle the soil around your plants.",
+        reminder: "2025-04-16T10:00", 
+        completed: false,
+        notified: false
+      },
+      {
+        text: "Step 8: Ongoing care. Starting April 17th, check daily for watering needs, support the tomato, and monitor for pests (e.g., snails, aphids, caterpillars).",
+        reminder: "2025-04-17T08:00", 
+        completed: false,
+        notified: false
+      }
+    ];
+
+    // Retrieve tasks from local storage or initialize with preset tasks.
+    let tasks = JSON.parse(localStorage.getItem("tasks"));
+    if (!tasks || tasks.length === 0) {
+      tasks = presetTasks;
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
     
-    // Save tasks to local storage
+    // Save tasks to local storage.
     function saveTasks() {
       localStorage.setItem("tasks", JSON.stringify(tasks));
     }
     
-    // Display tasks on the page
+    // Display tasks on the page.
     function displayTasks() {
       const list = document.getElementById("taskList");
       list.innerHTML = "";
       tasks.forEach((task, index) => {
         const li = document.createElement("li");
+
+        // Container for task text and completion toggle.
+        const div = document.createElement("div");
 
         const span = document.createElement("span");
         span.textContent = task.text;
@@ -111,18 +176,20 @@
           saveTasks();
           displayTasks();
         });
-        li.appendChild(span);
+        div.appendChild(span);
         
-        if(task.reminder) {
+        li.appendChild(div);
+
+        if (task.reminder) {
           const rspan = document.createElement("span");
           rspan.className = "reminder";
           const dt = new Date(task.reminder);
-          rspan.textContent = dt.toLocaleString();
+          rspan.textContent = "Reminder: " + dt.toLocaleString();
           li.appendChild(rspan);
         }
         
         const delBtn = document.createElement("button");
-        delBtn.textContent = "Delete";
+        delBtn.textContent = "Delete Task";
         delBtn.addEventListener("click", () => {
           tasks.splice(index, 1);
           saveTasks();
@@ -133,33 +200,35 @@
       });
     }
     
-    // Event listener for adding a new task
+    // Event listener for adding a custom task.
     document.getElementById("taskForm").addEventListener("submit", function(e) {
       e.preventDefault();
       const taskInput = document.getElementById("taskInput");
       const reminderInput = document.getElementById("reminderInput");
-      const newTask = {
-        text: taskInput.value,
-        reminder: reminderInput.value,
-        completed: false,
-        notified: false // to track if reminder was already alerted
-      };
-      tasks.push(newTask);
-      saveTasks();
-      displayTasks();
-      taskInput.value = "";
-      reminderInput.value = "";
+      if (taskInput.value.trim() !== "") {
+        const newTask = {
+          text: taskInput.value,
+          reminder: reminderInput.value || null,
+          completed: false,
+          notified: false
+        };
+        tasks.push(newTask);
+        saveTasks();
+        displayTasks();
+        taskInput.value = "";
+        reminderInput.value = "";
+      }
     });
     
     displayTasks();
     
-    // Check for reminders periodically (every 10 seconds)
+    // Check for upcoming reminders every 10 seconds.
     setInterval(() => {
       const now = new Date();
       tasks.forEach((task, index) => {
         if(task.reminder && !task.notified) {
           const reminderTime = new Date(task.reminder);
-          // If the reminder is within the next minute
+          // Trigger a notification if the reminder is due within the next minute.
           if(reminderTime - now < 60000 && reminderTime - now > 0) {
             alert("Reminder: " + task.text);
             tasks[index].notified = true;
