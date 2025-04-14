@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Garden Planner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    form {
+      max-width: 500px;
+      margin: 0 auto 20px auto;
+    }
+    input[type="text"], input[type="datetime-local"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background: #2ecc71;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #27ae60;
+    }
+    ul.task-list {
+      list-style: none;
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 0;
+    }
+    ul.task-list li {
+      background: #fff;
+      margin-bottom: 5px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 4px;
+    }
+    ul.task-list li span.task-text {
+      flex-grow: 1;
+      cursor: pointer;
+    }
+    ul.task-list li span.task-text.completed {
+      text-decoration: line-through;
+      color: #888;
+    }
+    ul.task-list li span.reminder {
+      font-size: 0.9em;
+      color: #555;
+      margin-left: 10px;
+    }
+    ul.task-list li button {
+      background: #e74c3c;
+      margin-left: 10px;
+      padding: 5px 10px;
+      font-size: 0.9em;
+    }
+    ul.task-list li button:hover {
+      background: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <h1>Garden Planner</h1>
+  <form id="taskForm">
+    <input type="text" id="taskInput" placeholder="Enter task (e.g., 'Check tomato plant soil')" required>
+    <input type="datetime-local" id="reminderInput" title="Set a reminder for this task (optional)">
+    <button type="submit">Add Task</button>
+  </form>
+  
+  <ul id="taskList" class="task-list"></ul>
+  
+  <script>
+    // Retrieve tasks from local storage or initialize an empty list.
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    
+    // Save tasks to local storage
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+    
+    // Display tasks on the page
+    function displayTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+
+        const span = document.createElement("span");
+        span.textContent = task.text;
+        span.className = "task-text" + (task.completed ? " completed" : "");
+        span.addEventListener("click", () => {
+          tasks[index].completed = !tasks[index].completed;
+          saveTasks();
+          displayTasks();
+        });
+        li.appendChild(span);
+        
+        if(task.reminder) {
+          const rspan = document.createElement("span");
+          rspan.className = "reminder";
+          const dt = new Date(task.reminder);
+          rspan.textContent = dt.toLocaleString();
+          li.appendChild(rspan);
+        }
+        
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          displayTasks();
+        });
+        li.appendChild(delBtn);
+        list.appendChild(li);
+      });
+    }
+    
+    // Event listener for adding a new task
+    document.getElementById("taskForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const taskInput = document.getElementById("taskInput");
+      const reminderInput = document.getElementById("reminderInput");
+      const newTask = {
+        text: taskInput.value,
+        reminder: reminderInput.value,
+        completed: false,
+        notified: false // to track if reminder was already alerted
+      };
+      tasks.push(newTask);
+      saveTasks();
+      displayTasks();
+      taskInput.value = "";
+      reminderInput.value = "";
+    });
+    
+    displayTasks();
+    
+    // Check for reminders periodically (every 10 seconds)
+    setInterval(() => {
+      const now = new Date();
+      tasks.forEach((task, index) => {
+        if(task.reminder && !task.notified) {
+          const reminderTime = new Date(task.reminder);
+          // If the reminder is within the next minute
+          if(reminderTime - now < 60000 && reminderTime - now > 0) {
+            alert("Reminder: " + task.text);
+            tasks[index].notified = true;
+            saveTasks();
+          }
+        }
+      });
+    }, 10000);
+  </script>
+</body>
+</html>
